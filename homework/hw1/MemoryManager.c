@@ -58,7 +58,7 @@ int get_running_count()
         // 2a. generate an array size
         int array_size = get_arr_size(rand());
         // 2b. allocate memory for array in the heap
-        int *array = (int*)  malloc(array_size * sizeof(int));
+        int *array = (int*) malloc(array_size * sizeof(int));
         // 2c. populate array with random numbers
         for (int i = 0; i < array_size; i++) {
             int r = rand();
