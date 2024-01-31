@@ -52,7 +52,7 @@ int get_running_count()
     // 1. generate number of iterations
     int num_iterations = get_iteration_count(rand());
     printf("[MemoryManager] Number of iterations: %d\n", num_iterations);
-    int thirteen_divides_how_many_averages = 0;
+    int thirteen_multiple_counter = 0;
     // 2. for number of iterations...
     for (int i = 0; i < num_iterations; i++) {
         // 2a. generate an array size
@@ -68,10 +68,10 @@ int get_running_count()
         int median = return_median(array, array_size);
         // 2e. check if median divisible by 13
         if (median % 13 == 0) {
-            thirteen_divides_how_many_averages++;
+            thirteen_multiple_counter++;
         }
         free(array);
     }
     // 2f. return number of medians divisble by 13
-    return thirteen_divides_how_many_averages;
+    return thirteen_multiple_counter;
 }

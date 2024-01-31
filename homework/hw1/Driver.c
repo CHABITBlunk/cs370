@@ -24,7 +24,7 @@ int main(int argc, char **argv)
         // invoke the function in MemoryManager
         printf("[Driver] With seed: %d\n", seed);
         int running_count = get_running_count();
-        printf("[Dirver] Running Count: %d\n\n", running_count);
+        printf("[Driver] Running Count: %d\n\n", running_count);
         return 0;
     }
 }
