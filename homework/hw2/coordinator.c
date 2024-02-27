@@ -16,7 +16,7 @@ int main(int argc, char *argv[]) {
 			child_pid = getpid();
       printf("Coordinator: forked process with id %d.\n", child_pid);
       printf("Coordinator: waiting for process [%d].\n", child_pid);
-      execlp("checker", argv[1], argv[i]);
+      execl("checker", argv[1], argv[i]);
     } else {
       int status;
       wait(&status);

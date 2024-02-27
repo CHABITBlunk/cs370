@@ -6,15 +6,19 @@
 int main(int argc, char *argv[]) {
   printf("Checker process [%d]: Starting.\n", getpid());
 
-  int argOne = atoi(argv[0]);
-  int argTwo = atoi(argv[1]);
+  int fd = atoi(argv[2]);
+  int divisor = atoi(argv[0]);
+  int dividend = atoi(argv[1]);
 
-  if (!(argTwo % argOne)) {
-    printf("Checker process [%d]: %d IS divisible by %d.\n", getpid(), argTwo, argOne);
+  read(fd, &divisor, sizeof(divisor));
+  read(fd, &dividend, sizeof(dividend));
+
+  if (!(dividend % divisor)) {
+    printf("Checker process [%d]: %d IS divisible by %d.\n", getpid(), dividend, divisor);
     printf("Checker process [%d]: Returning 1.\n", getpid());
     return 1;
   } else {
-    printf("Checker process [%d]: %d *IS NOT* divisible by %d.\n", getpid(), argTwo, argOne);
+    printf("Checker process [%d]: %d *IS NOT* divisible by %d.\n", getpid(), dividend, divisor);
     printf("Checker process [%d]: Returning 0.\n", getpid());
     return 0;
   }
