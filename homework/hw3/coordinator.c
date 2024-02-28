@@ -27,7 +27,7 @@ int main(int argc, char *argv[]) {
     }
 
     else if (pid > 0) {
-      printf("Coordinator: forked process with id %d.\n", getpid());
+      printf("Coordinator: forked process with id %d.\n", getpid() + i - 1);
 			close(fd[0]);
 			write(fd[1], &shmids[i - 2], sizeof(shmids[i - 2]));
 			printf("Coordinator: wrote shm ID %d to pipe (%lu bytes)\n", shmids[i - 2], sizeof(shmids[i - 2]));
