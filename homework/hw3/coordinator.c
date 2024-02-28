@@ -13,9 +13,9 @@ int main(int argc, char *argv[]) {
     return -1;
   }
   int shmids[4];
-  for (int i = 2; i < argc; i++) {
+  for (int i = 0; i < 4; i++) {
 
-    shmids[i - 2] = shmget(IPC_PRIVATE, sizeof(int), IPC_CREAT | 0666);
+    shmids[i ] = shmget(IPC_PRIVATE, sizeof(int), IPC_CREAT | 0666);
 
     int fd[2];
     pipe(fd);
@@ -27,30 +27,30 @@ int main(int argc, char *argv[]) {
     }
 
     else if (pid > 0) {
-      printf("Coordinator: forked process with id %d.\n", getpid() + i - 1);
 			close(fd[0]);
-			write(fd[1], &shmids[i - 2], sizeof(shmids[i - 2]));
-			printf("Coordinator: wrote shm ID %d to pipe (%lu bytes)\n", shmids[i - 2], sizeof(shmids[i - 2]));
+			write(fd[1], &shmids[i], sizeof(shmids[i]));
     }
 
     else {
+      printf("Coordinator: forked process with id %d.\n", getpid());
+			printf("Coordinator: wrote shm ID %d to pipe (%lu bytes)\n", shmids[i], sizeof(shmids[i]));
       char buffer[8];
       sprintf(buffer, "%d", fd[0]);
-      execl("checker", "checker", buffer, argv[1], argv[i]);
+      execlp("checker", "checker", buffer, argv[1], argv[i + 2]);
     }
   }
 
-  for (int i = 2; i < argc; i++) {
+  for (int i = 0; i < 4; i++) {
     // wait for child to finish
     int status;
     wait(&status);
 
     // attach to & read from shm segment
-    int *shmpt = (int*) shmat(shmids[i - 2], NULL, 0);
+    int *shmpt = (int*) shmat(shmids[i], NULL, 0);
     if (*shmpt == 1) {
-      printf("Coordinator: result %d read from shared memory: %s is divisible by %s.\n", *shmpt, argv[i], argv[1]);
+      printf("Coordinator: result %d read from shared memory: %s is divisible by %s.\n", *shmpt, argv[i + 2], argv[1]);
     } else if (*shmpt == 0) {
-      printf("Coordinator: result %d read from shared memory: %s is not divisible by %s.\n", *shmpt, argv[i], argv[1]);
+      printf("Coordinator: result %d read from shared memory: %s is not divisible by %s.\n", *shmpt, argv[i + 2], argv[1]);
     }
 
     // destroy shmpt
