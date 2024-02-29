@@ -24,7 +24,7 @@ checker: checker.o
 
 # clean up directory
 clean:
-	rm -rf *.o *- $(EXE1) $(EXE2)
+	rm -rf *.o *- $(EXE1) $(EXE2) *.zip
 
 # zip up everything for the submission
 package:
