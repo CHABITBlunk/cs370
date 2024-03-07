@@ -110,11 +110,11 @@
 - good algorithmic description
   - shows how to address the 3 requirements
 - components
-  - restricted to 2 procs in this example but generalizable to n - P_i & P_j
+  - restricted to 2 procs in this example but generalizable to n - `P_i` & `P_j`
   - share 2 data items
     - `int turn` - indicates whose turn it is to enter critical section
     - `boolean flag[2]` - whether proc is ready to enter critical section
-- structure of proc P_i
+- structure of proc `P_i`
 ```c
 do {
   flag[0] = TRUE;
@@ -125,7 +125,7 @@ do {
   // remainder section
 } while (TRUE);
 ```
-- structure of proc P_j
+- structure of proc `P_j`
 ```c
 do {
   flag[1] = TRUE;
@@ -137,15 +137,15 @@ do {
 } while (TRUE);
 ```
 - mutual exclusion
-  - P_i enters critical section only if `!flag[j] || turn == i`
+  - `P_i` enters critical section only if `!flag[j] || turn == i`
   - if both procs try to execute in critical section at the same time, `flag[0] == flag[1] == TRUE`, but `turn` can only be 0 or 1
-  - P_j enters critical section only if `flag[j] && turn == j` - will persist as long as P_j in critical section
+  - `P_j` enters critical section only if `flag[j] && turn == j` - will persist as long as `P_j` in critical section
 - progress & bounded wait
-  - P_i can be stuck only if `flag[j] && turn == j`
-    - if P_j not ready, `flag[j] == FALSE`, P_i can enter
-    - once P_j exists, it resets `flag[j]` to FALSE
-  - if P_j sets `flag[j]` to `TRUE`, must set `turn = i`
-  - P_i will enter critical section after at most one entry by P_j (bounded wait)
+  - `P_i` can be stuck only if `flag[j] && turn == j`
+    - if `P_j` not ready, `flag[j] == FALSE`, `P_i` can enter
+    - once `P_j` exists, it resets `flag[j]` to FALSE
+  - if `P_j` sets `flag[j]` to `TRUE`, must set `turn = i`
+  - `P_i` will enter critical section after at most one entry by `P_j` (bounded wait)
 
 ## synchronization hardware
 
@@ -165,8 +165,8 @@ do {
 - multiprocessor environment
   - disabling interrupts time consuming - message passed to all processors
 - special atomic hardware instructions
-  - swap content of two words
-  - modify word
+  - swap content of two words - `Swap()`
+  - modify word - `TestAndSet()`
 
 ### `Swap()`
 ```c
