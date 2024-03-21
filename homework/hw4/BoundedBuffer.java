@@ -1,29 +1,30 @@
 package hw4;
 
+import java.lang.InterruptedException;
+
 public class BoundedBuffer {
 
-  public final int MAX_SIZE = 1000;
-  private int size;
-  private double[] elements;
+  private int length;
+  private Double[] elements;
 
-  public BoundedBuffer() {
+  public BoundedBuffer(int size) {
     super();
-    size = 0;
-    elements = new double[MAX_SIZE];
+    length = 0;
+    elements = new Double[size];
   }
 
   /**
-   * Try to add an element to the buffer. Return false if this cannot be done.
+   * Try to add an element to the buffer. Wait if this cannot be done.
    *
    * @param d double the double to add to the buffer
-   * @return false if size == MAX_SIZE - 1, true otherwise
    */
-  public boolean add(double d) {
-    if (size == MAX_SIZE - 1)
-      return false;
-    elements[size] = d;
-    size++;
-    return true;
+  public synchronized void add(double d) throws InterruptedException {
+    while (isFull()) {
+      wait();
+    }
+    elements[length] = d;
+    length = (length + 1) % elements.length;
+    notify();
   }
 
   /**
@@ -32,16 +33,22 @@ public class BoundedBuffer {
    *
    * @return null if size == 0, the number at elements[size - 1] otherwise
    */
-  public int remove() {
-    if (size == 0)
-      return null;
-    int rtn = elements[size - 1];
-    elements[size - 1] = null;
-    size--;
+  public synchronized double remove() throws InterruptedException {
+    while (isEmpty()) {
+      wait();
+    }
+    double rtn = elements[length - 1];
+    elements[length - 1] = null;
+    length = (length - 1) % elements.length;
+    notify();
     return rtn;
   }
 
-  public int size() {
-    return size;
+  public boolean isFull() {
+    return length == elements.length;
+  }
+
+  public boolean isEmpty() {
+    return length == 0;
   }
 }

@@ -1,23 +1,35 @@
 package hw4;
 
-import java.util.Random;
-import java.util.Thread;
+import java.lang.InterruptedException;
+import java.util.*;
 
 public class Producer extends Thread {
 
   private BoundedBuffer buffer;
-  private int numItemsProduced;
-  private Random random;
+  private int numIterations;
+  private double sum;
 
-  public Producer(BoundedBuffer b) {
+  public Producer(BoundedBuffer b, int iterations) {
     buffer = b;
-    numberItemsProduced = 0;
-    random = new Random();
+    numIterations = iterations;
+    sum = 0;
   }
 
   public void run() {
-    while (numItemsProduced < 1000000 && buffer.size() < buffer.MAX_SIZE) {
-      buffer.add(random.nextDouble() * 100.0);
+    Random random = new Random();
+    for (int i = 0; i < numIterations; i++) {
+      double d = random.nextDouble() * 100.0;
+      sum += d;
+      try {
+        buffer.add(d);
+        if (i % 100000 == 0) {
+          System.out.printf(
+              "Producer: Generated %,d items, Cumulative value of generated items = %.2f\n",
+              i, sum);
+        }
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
     }
   }
 }
