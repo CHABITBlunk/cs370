@@ -17,7 +17,7 @@ public class Producer extends Thread {
 
   public void run() {
     Random random = new Random();
-    for (int i = 0; i < numIterations; i++) {
+    for (int i = 1; i <= numIterations; i++) {
       double d = random.nextDouble() * 100.0;
       sum += d;
       try {
@@ -26,6 +26,9 @@ public class Producer extends Thread {
           System.out.printf(
               "Producer: Generated %,d items, Cumulative value of generated items = %.2f\n",
               i, sum);
+        }
+        if (i == numIterations) {
+          System.out.printf("Producer: Finished generating %,d items\n", i);
         }
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();

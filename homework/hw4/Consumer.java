@@ -16,17 +16,16 @@ public class Consumer extends Thread {
   }
 
   public void run() {
-    for (int i = 0; i < numIterations; i++) {
+    for (int i = 1; i <= numIterations; i++) {
       try {
-        double d = buffer.remove();
-        sum += d;
+        sum += buffer.remove();
         if (i % 100000 == 0) {
           System.out.printf(
               "Consumer: Consumed %,d items, Cumulative value of consumed items = %.2f\n",
               i, sum);
         }
         if (i == numIterations) {
-          System.out.println("Consumer: finished consuming 1,000,000 items.");
+          System.out.printf("Consumer: Finished consuming %,d items.\n", i);
         }
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();

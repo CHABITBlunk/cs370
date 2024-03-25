@@ -4,12 +4,13 @@ import java.lang.InterruptedException;
 
 public class BoundedBuffer {
 
-  private int length;
+  private int numElements;
   private Double[] elements;
+  private int addIndex;
+  private int removeIndex;
 
   public BoundedBuffer(int size) {
-    super();
-    length = 0;
+    numElements = 0;
     elements = new Double[size];
   }
 
@@ -22,33 +23,35 @@ public class BoundedBuffer {
     while (isFull()) {
       wait();
     }
-    elements[length] = d;
-    length = (length + 1) % elements.length;
+    elements[addIndex] = d;
+    addIndex = (addIndex + 1) % elements.length;
+    numElements++;
     notify();
   }
 
   /**
-   * Try to remove an element from the buffer. Return null if this cannot be
+   * Try to remove an element from the buffer. Wait if this cannot be
    * done.
    *
-   * @return null if size == 0, the number at elements[size - 1] otherwise
+   * @return the number at elements[removeIndex]
    */
   public synchronized double remove() throws InterruptedException {
     while (isEmpty()) {
       wait();
     }
-    double rtn = elements[length - 1];
-    elements[length - 1] = null;
-    length = (length - 1) % elements.length;
+    double rtn = elements[removeIndex];
+    elements[removeIndex] = null;
+    removeIndex = (removeIndex + 1) % elements.length;
+    numElements--;
     notify();
     return rtn;
   }
 
-  public boolean isFull() {
-    return length == elements.length;
+  private boolean isFull() {
+    return numElements == elements.length;
   }
 
-  public boolean isEmpty() {
-    return length == 0;
+  private boolean isEmpty() {
+    return numElements == 0;
   }
 }

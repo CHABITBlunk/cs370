@@ -4,8 +4,8 @@ public class ProducerConsumer {
 
   public static void main(String[] args) {
     BoundedBuffer buffer = new BoundedBuffer(1000);
-    Consumer c = new Consumer(buffer, 1000000);
     Producer p = new Producer(buffer, 1000000);
+    Consumer c = new Consumer(buffer, 1000000);
     p.start();
     c.start();
     try {
