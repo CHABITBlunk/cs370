@@ -78,12 +78,23 @@ private:
 
 int main(int argc, char **argv) {
   std::ifstream file(argv[1]);
+  // NOTE: format for value in line looks like this: (*loop)[i]
+  // i = 0: pid
+  // i = 1: arrival time
+  // i = 2: burst duration
+  // i = 3: priority
+
   // fcfs (non-preemptive)
+  std::cout << "--- FCFS ---";
   for (CSVIterator loop(file); loop != CSVIterator(); ++loop) {
   }
-  // sjf (preemptive)
+  // sjfp
+  std::cout << "--- SJFP ---";
   for (CSVIterator loop(file); loop != CSVIterator(); ++loop) {
   }
   // priority (preemptive)
+  std::cout << "--- Priority ---";
+  for (CSVIterator loop(file); loop != CSVIterator(); ++loop) {
+  }
   return 0;
 }
