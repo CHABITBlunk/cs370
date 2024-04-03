@@ -1,3 +1,4 @@
+#include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -86,7 +87,12 @@ int main(int argc, char **argv) {
 
   // fcfs (non-preemptive)
   std::cout << "--- FCFS ---";
+  int total_time = 0, total_turnaround = 0, total_wait = 0;
   for (CSVIterator loop(file); loop != CSVIterator(); ++loop) {
+    // get arrival time, which when parsed, shows up in position 1
+    int arrivalTime = atoi((*loop)[1]);
+    // add proc time burst to total time
+    total_time += atoi((*loop)[2]);
   }
   // sjfp
   std::cout << "--- SJFP ---";
