@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 int main(int argc, char *argv[]) {
   FILE *file = fopen("/proc/1/stat", "r");
@@ -11,6 +12,10 @@ int main(int argc, char *argv[]) {
     fclose(file);
     return EXIT_FAILURE;
   }
-  printf("%s", line);
+  char *token = strtok(line, " ");
+  for (int i = 1; i < 12; ++i) {
+    token = strtok(NULL, " ");
+  }
+  printf("Page faults: %s\n", token);
   return EXIT_SUCCESS;
 }
