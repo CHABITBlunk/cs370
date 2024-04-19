@@ -13,6 +13,9 @@
 - mem protection in paged environments
 - shared pages
 - page sizes
+- structure of page tables
+  - hashed page tables
+  - inverted page tables
 
 ### mem is an important resource that must be managed carefully
 
@@ -544,7 +547,7 @@
 ### purpose of page table is to map virt pages onto physical frames
 
 - page table is like a function
-  - takes virt page num as arg, produces physical frame number as result
+  - takes virt page num as arg, produces physical frame num as result
 - virt page field in virt addr replaced by frame field
   - physical mem addr
 
@@ -733,3 +736,174 @@
 
 - as physical mem gets bigger, page sizes will get larger too, though not linearly
 - quadrupling physical mem size rarely even doubles page size
+
+## structure of page table
+
+### typical use of page table
+
+- proc refers to addrs through pages' virtual addr
+- proc has page table
+- table has entries for pages that proc uses
+  - 1 slot for each page irrespective of validity
+- page table sorted by virt addrs
+
+### basic paging hardware
+
+- page table part of hardware
+
+### structure of page table
+
+- hierarchical paging
+- hashed page tables
+- inverted page tables
+
+### hierarchical paging
+
+- logical addr spaces: 2<sup>32</sup> - 2<sup>64</sup>
+- page size: 4k = 2<sup>2</sup> \* 2<sup>10</sup> = 2<sup>12</sup>
+- num page table entries
+  - logical addr space size / page size
+  - 2<sup>32</sup> / 2<sup>12</sup> = 2<sup>20</sup> ~ 1 million entries
+- page table entry = 4 bytes
+  - page table for proc = 2<sup>20</sup> \* 4 = 4 mb
+
+### issues with large page tables
+
+- cannot allocate page table contiguously in mem
+- solution: divide page table into smaller pieces, page the page-table
+
+### 2-level paging
+
+- for 32-bit logical addrs, there are outer & inner pages of 10, with page offset 12
+
+### addr translation in 2-level paging
+
+- p1 has outer page, p2 has inner page, d is offset
+- outer page table traks pages of page table
+
+### computing num of page tables in hierarchical paging
+
+- there is 1 outer table with 2^11 entries
+- each outer table entry points to an inner page table so there are 2^11 inner page tables
+- total num of page tables = 1 + 2^11
+- total num entities = 2^11 + 2^11 \* 2^11
+
+### 2-level paging for 64-bit logical addr space
+
+- outer page has 2^42 entries
+- divide outer page table into smaller pieces -> 2nd outer page has 2^32 entries, outer & inner page have 2^10 entries
+
+### why hierarchical tables may strain 64-bit architectures
+
+- in our previous example, there would be 2^32 entries in outer page table
+- we could keep going and have 4-level page tables, but all this results in prohibitive num of mem accesses
+
+## hashed page tables
+
+### hashed page tables
+
+- an approach for handling addr spaces > 2^32
+- virt page num hashed
+  - hash used as key to enter items in hash table
+- value part of table is linked list
+  - each entry has
+    - virt page num
+    - value of mapped page frame
+    - pointer to next element in list
+
+### searching through hashed table for frame num
+
+- virt page num hashed
+  - hashed key has corresponding value in table - linked list of entries
+- traverse linked list to find a matching virt page num
+
+### hash tables & 64-bit addr spaces
+
+- each entry refers to several pages instead of a single page
+- multiple page-to-frame mappings per entry
+  - clustered page tables
+- useful for sparse addr spaces where mem references non-contiguous & scattered
+
+## inverted page tables
+
+### inverted page table
+
+- only 1 page table in system that has entry for each mem frame
+- each entry tracks
+  - proc that owns it (pid)
+  - virt addr of page (page num)
+- each logical addr has pid, p, and d
+- search page table by pid to find the page, then combine with d to get the proper frame
+
+### profiling inverted page table
+
+- decreases amt mem used
+- search time increases during page dereferencing
+- stored based on frames, but searched on pages
+  - whole table might need to be searched!
+
+### other issues with inverted page table
+
+- shared paging
+  - multiple pages mapped to same physical mem
+- shared paging not possible in inverted tables
+  - only 1 virt page entry per physical page
+    - stored based on frames
+
+## paging in real-world systems
+
+### x86-64
+
+- intel: ia-64 itanium
+  - not much traction
+- amd: x86-64
+  - intel adopted amd's x86-64 architecture
+- 64-bit addr space: 2^64
+- currently x86-64 provides
+  - 48-bit virt addr (sufficient for 256 tb)
+  - page sizes: 4 kb, 2 mb, 1 gb
+  - 4-level hierarchical paging
+
+### typical paging scheme in x86-64
+
+- 1st level: 9 bits
+- 2nd level: 9 bits
+- 3rd level: 9 bits
+- 4th level: 9 bits
+- offset: 12 bits
+
+### optimization to eliminate levels in x86-64
+
+- high-end servers routinely have 2tb ram
+- with 48-bit addressing & 4-level page tables, we can have some optimizations
+- each physical frame on x86 is 4 kb
+- each page in 4th level page table maps 2 mb
+  - if entire 2 mb covered by page table allocated contiguously in physical mem
+    - page table entry one layer up can be marked to point directly
+- also improves tlb efficiency
+
+### arm architectures
+
+- iphone & android use this
+- 32-bit arm
+  - 4 kb & 16 kb pages (2-level paging)
+  - 1 mb & 16 mb pages (1-level paging)
+    - termed sections
+  - 2 levels for tlbs: separate tlb for data, another for instructions
+
+## segmentation with paging
+
+### segmentation with paging
+
+- multics: each program can have up to 256k independent segments, each with 64k 36-bit words
+- pentium
+  - 16k independent segments
+  - each segment has 10^9 32-bit words (4 gb)
+  - few programs need more than 1000 segments, but many programs need large segments
+- 32-bit x86
+  - virt addr space within segment has 2-level page table
+    - 1st 10 bits top level page table, next 10 bites 2nd level page table, final 12 bits are offset
+- 64-bit x86
+  - 48 bits of virt addrs within a segment
+  - 4-level page table
+    - includes optimizations to eliminate 1 or 2 levels of page table
