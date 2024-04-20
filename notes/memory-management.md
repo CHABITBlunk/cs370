@@ -563,7 +563,7 @@
 ### implementing page table: dedicated registers
 
 - when proc assigned cpu, dispatcher reloads registers
-- feasible if page table small, but for most contemporary systems, page table entries are greater than 10<sup>6</sup>
+- feasible if page table small, but for most contemporary systems, page table entries are greater than 10^6
 
 ### implementing page table in mem
 
@@ -759,13 +759,13 @@
 
 ### hierarchical paging
 
-- logical addr spaces: 2<sup>32</sup> - 2<sup>64</sup>
-- page size: 4k = 2<sup>2</sup> \* 2<sup>10</sup> = 2<sup>12</sup>
+- logical addr spaces: 2^32 - 2^64
+- page size: 4k = 2^2 \* 2^10 = 2^12
 - num page table entries
   - logical addr space size / page size
-  - 2<sup>32</sup> / 2<sup>12</sup> = 2<sup>20</sup> ~ 1 million entries
+  - 2^32 / 2^12 = 2^20 ~ 1 million entries
 - page table entry = 4 bytes
-  - page table for proc = 2<sup>20</sup> \* 4 = 4 mb
+  - page table for proc = 2^20 \* 4 = 4 mb
 
 ### issues with large page tables
 
