@@ -6,6 +6,11 @@
 - demand paging
 - performance of demand paging
 - page replacement
+- page replacement algorithms
+- page buffering
+- frame allocations
+- working sets
+- tlb reach
 
 ### how we got here
 
@@ -303,3 +308,263 @@
 - during page fault
   - page at head removed
   - new page added to tail
+
+## optimal page replacement algorithm
+
+### optimal page replacement algorithm
+
+- best possible algorithm
+- easy to describe but impossible to implement
+- crux: put off unpleasant stuff for as long as possible
+
+### optimal page replacement algorithm description
+
+- when page fault occurs some set of pages are in mem
+- one page will be referenced next
+  - other pages may not be referenced until 10, 100, or 1000 instructions later
+- label each page with num instructions to be executed before it will be referenced
+  - when there is a page fault, page with highest label should be removed
+
+### problem with optimal page replacement algorithm
+
+- unrealizable
+- during a page fault, os has no way of knowing when each page will be referenced next
+
+### why look at it?
+
+- run a program
+  - track all page references
+- implement optimal page replacement on 2nd run based on reference info from first run
+- compare performance of realizable algorithms with best possible one
+
+## lru page replacements
+
+### least recently used (lru) page replacement algorithm
+
+- approximation of optimal algorithm
+- observation
+  - pages used heavily in last few instructions probably will be used heavily in next few
+  - pages that have not been used will probably remain unused for a long time
+- when page fault occurs, throw out page that has been unused for longest
+
+### implementing lru
+
+- logical clock
+- stacks
+
+### using logical clock to implement lru
+
+- each page table entry has time-of-use field
+  - entry updated when page referenced
+    - contents of clock register copied
+- replace page with smallest value
+  - time increases monotonously
+    - overflows must be accounted for
+- requires search of page table to find lru page
+
+### stack based approach
+
+- keep stack of page nums
+- when page referenced, move to top of stack
+- implemented as doubly linked list
+- no search done for replacement
+  - bottom of stack is lru page
+
+### problems with clock/stack based approaches to lru replacements
+
+- inconceivable without hardware support
+  - few systems provide requisite support for true lru implementations
+- updates of clock fields or stack needed at every mem reference
+- if we use interrupts & do software updates of data structures, things would be very slow (every mem reference >10x slower)
+
+## lru approximation page replacements
+
+### lru approximation: reference bit
+
+- reference bit associated with page table entries
+- reference bit set by hardware when page referenced
+  - r/w access of page
+- determine which page has been used, which has not
+  - however, no way of knowing order of references
+
+### lru approximation: additional reference bits
+
+- maintain byte for each page in mem
+- os shifts reference bit for page into highest order bit of byte
+  - operation performed at regular intervals
+  - reference bit then cleared
+
+### lru approximation: interpreting reference bits
+
+- interpret bytes as unsigned ints
+- page with lowest num is lru page
+- 00000000: not used in last 8 periods
+- 01100101: used 4 times in last 8 periods
+- 11000100 used more recently than 01110111
+
+### 2nd chance algorithm
+
+- simple modification of fifo
+- avoids throwing out heavily used page
+- inspect reference bit of page
+  - if 0: page old & unused -> evict
+  - if 1: page given 2nd chance -> move page to end of list
+- reasonable, but unnecessarily inefficient
+  - constantly moving pages around on its list
+- better to keep pages in circular list like a clock
+
+### clock page replacement
+
+- keep all frames on circular list like a clock
+  - hand points to oldest page
+- when page fault occurs, page being pointed to by hand inspected
+  - if r bit 0, page evicted
+    - new page inserted into clock in its place
+    - hand advances 1 position
+  - if r bit 1, cleared
+    - hand advances 1 position
+
+### counting based page replacements: most frequently used (mfu)
+
+- argument: page with smallest count was probably just brought in
+
+### summary of page replacement algorithms
+
+| algorithm                       | comment                                        |
+| ------------------------------- | ---------------------------------------------- |
+| optimal                         | not implementable, but useful as benchmark     |
+| fifo                            | might throw out important pages                |
+| 2nd chance                      | big improvement over fifo                      |
+| clock                           | realistic                                      |
+| lru (least recently used)       | excellent, but difficult to implement          |
+| nfu (not frequently used)       | fairly crude approximate to lru                |
+| aging (multiple reference bits) | efficient algorithm that approximates lru well |
+
+## page buffering algorithms
+
+### page buffering
+
+- maintain buffer of free frames
+- when page fault occurs
+  - victim frame chosen as before
+  - desired page read into free frame from buffer before victim frame written out
+  - proc that page faulted can restart much faster
+
+### page buffering: being proactive
+
+- maintain a list of modified pages
+- when paging device idle, write modified pages to disk
+- implications
+  - if page selected for replacement, increase likelihood of that page being clean
+
+### page buffering: reuse what you can
+
+- keep pool of free frames as before, but remember which pages they held
+- frame contents not modified when page written to disk
+- if page needs to come back in, reuse same frame if it was not used to hold some other page
+
+### buffering & apps
+
+- apps often understand their mem/disk usage better than os
+  - provide their own buffering schemes
+- if both os & app were to buffer, 2x i/o being utilized for a given i/o
+
+## allocation of frames
+
+### constraints on frame allocation
+
+- max: total num frames in system
+  - available physical mem
+- min: need to allocate at least a min num frames defined by system architecture
+
+### min num frames
+
+- as you decrease num frames for a proc, page fault & execution time increase
+- defined by architecture
+  - in some cases, instructions & operands (indirect references) straddle page boundaries
+    - with 2 operands, >6 frames needed
+
+## frame allocation policies
+
+### global vs. local allocation
+
+- global replacement
+  - 1 proc can take a mem frame from another proc
+- local replacement
+  - proc can only choose from set of frames allocated to it
+
+## working sets & thrashing
+
+### locality of references
+
+- during any phase of execution, a proc references a relatively small fraction of its pages
+- working set - set of pages that a proc is currently using
+
+### implications of working set
+
+- if entire working set in mem, proc will execute without causing many faults until it moves to another phase of execution
+- if available mem too small to hold working set
+  - proc will cause many faults
+  - run very slowly
+
+### program causing page faults every few instructions is said to be thrashing
+
+- system throughput plunges
+  - procs spend all their time paging
+- increasing degree of multiprogramming can cause this
+  - new proc may steal frames from another proc
+    - overall page faults in system increases
+
+### mitigating effects of thrashing
+
+- using local page replacement algorithm
+  - 1 proc thrashing doesn't cause cascading thrashing for other procs
+  - but if a proc is thrashing, average service time for page fault increases
+- best approach
+  - track proc's working set
+  - make sure working set in mem before you let it run
+
+## working sets & thrashing
+
+### working set is approximation of program's locality
+
+- most important property of working set: size
+- WSS_i: working set size for proc p_i
+- if total demand exceeds available frames, thrashing will occur
+
+### working sets & page fault rates
+
+- peak in page fault rate happens when new locality being demand-paged
+- once working set in mem, page fault rate fails
+- when proc moves towards a new working set window, fault rate rises again
+
+### page fault frequency approach to reducing thrashing
+
+- when page fault rate high, proc needs more frames
+- when page fault rate too low, proc may have too many frames
+
+## other considerations
+
+### prepaging: loading pages before letting proc run
+
+- at 1 time, bring into mem all pages that will be needed
+  - prepage frames for small files
+- with working set model, ensure that entire working set in mem before proc resumed
+
+### tlb reach is amt mem accessible from tlb
+
+- tlb reach = num tlb entries \* page size
+- approaches to increasing tlb reach
+  - double entries (expensive)
+  - increase page size (increases internal fragmentation)
+  - support multiple page sizes (current trend)
+    - os manages tlb
+    - increase reach & hit ratio
+
+### select data structures & program structures efficiently
+
+- increase locality
+  - reduce page fault rates
+- loops
+  - if data stored in row major format, but program needs it as column major format
+- loader shoudl avoid placing routines across page boundaries
