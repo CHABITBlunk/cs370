@@ -1,4 +1,4 @@
-# fs
+# file systems
 
 ## toc
 
@@ -9,6 +9,9 @@
   - contiguous
   - linked
   - indexed
+    - inodes
+- free space mgmt
+- mem mapped files
 
 ## fs
 
@@ -167,8 +170,8 @@
 
 - cd-roms written in iso 9660 format designed by cd manufacturers
 - unix
-  - unix file system (ufs)
-  - bsd fast file system (ffs)
+  - unix fs (ufs)
+  - bsd fast fs (ffs)
 - windows
   - fat
   - fat32
@@ -380,3 +383,314 @@
   - pointer takes up some space
 - peculiar size less efficient
   - programs read/write in blocks that are powers of 2
+
+### linked list allocation using an index
+
+- entire disk block available for data
+- random access much easier
+  - chain must be followed, but chain can be cached in mem
+- ms-dos & os/2 operating systems use such a file allocation table (fat)
+
+### linked list allocation using an index: disadvantages
+
+- table must be cached in mem for efficient access
+- large disk will have large num data blocks
+  - table consumes large amount of physical mem
+
+## indexed allocations
+
+### indexed allocations
+
+- bring all pointers together in 1 location called an index block
+- each file has its own index block
+  - ith entry points to ith block of file
+  - dir contains index block's addr
+
+### indexed allocation supports direct access without external fragmentation
+
+- every disk block can be utilized -> no external fragmentation
+- space wasted by pointers is generally higher than linked list allocations
+  - e.g. file has 2 blocks
+    - linked list allocations: 2 pointers
+    - indexed allocations: entire index block must be allocated
+
+## inodes
+
+### inode
+
+- fixed-length data structure (1 per file)
+- contains info about
+  - file attributes
+    - size, owner, creation/modification time, &c.
+  - disk addrs
+    - file blocks that comprise file
+- used to encapsulate info about large num file blocks
+- e.g.
+  - block size = 8 kb, file size = 8 gb
+  - 1 million file blocks
+    - inode stores info about pointers to these blocks
+  - inode allows us to access info for all these blocks
+    - storing pointers to these file blocks also takes up storage
+
+### managing info about data blocks in inode
+
+- 1st few data blocks of file stored in inode
+- if file is large
+  - indirect pointer to block of pointers pointing to additional data blocks
+- if file is larger
+  - double indirect pointer (pointer to block of indirect pointers)
+- if file is huge
+  - triple indirect pointer (pointer to block of double indirect pointers)
+
+### schematic structure of inode
+
+- file attributes: size (bytes), owner uid/gid, relevant times, link & block counts, permissions
+- addr of disk block
+  - direct pointers to 1st few file blocks
+  - single indirect pointer -> pointers to next file blocks
+  - double indirect pointer
+  - triple indirect pointer
+
+### disk layout in traditional unix systems
+
+- boot block
+- super block
+- inodes
+- data blocks
+- note: integral num inodes fit in single data block
+
+### super block describes state of fs
+
+- total size of partition
+- block size & num disk blocks
+- num inodes
+- list of free blocks
+- inode num of root dir
+- destruction of superblock -> fs unreadable
+
+### linear array of inodes follows data block
+
+- inodes numbered from 1 to max
+- each inode identified by inode num
+  - inode num contains info needed to locate inode on disk
+  - users think of files as filenames
+  - unix thinks of files in terms of inodes
+
+### unix dir structure
+
+- contains only filenames & corresponding inode numbers
+- use `ls -i` to retrieve inode nums of files in dir
+
+### advantages of dir entries that have name & inode info
+
+- changing filename only requires changing dir entry
+- only 1 physical copy of file needs to be on disk
+  - file may have several names (or same name) in different dirs
+- dir entries are small
+  - most file info kept in inode
+
+### hard vs. symbolic links
+
+- hard links point to the same inode as the original file
+- symbolic links have different inode num, but that num points to the original file
+
+### max size of hard disk (8 kb blocks, 32-bit pointers)
+
+- 32-bit pointers can access 2^32 blocks
+- at 8 kb per block, hard disk can be 2^13 \* 2^32 = 2^45 bytes (32 tb)
+
+### case for larger block sizes
+
+- larger partitions for fixed pointer size
+- retrieval more efficient -> better system throughput
+- problem: internal fragmentation
+
+### limitations of fs based on inodes
+
+- file must fit in single disk partition
+- partition size & num files are fixed when system set up
+
+### inode preallocation & distribution
+
+- inodes preallocated on volume
+  - even on empty disks, %age of space lost to inodes
+- preallocating inodes & spreading them improves performance
+- keep file's data block close to inode -> reduce seek times
+
+### checking up on inodes: `df -i`
+
+- inode stats for given set of fs (total, free, & used inodes)
+
+## free space mgmt
+
+### free space mgmt
+
+- disk space limited -> reuse spcae from deleted files
+- keep track of free disk space
+  - maintain free space list
+  - record all free disk blocks
+- metadata i/o can impact performance
+
+### free space mgmt using free space list
+
+- creating new file
+  - search free space list for requisite space
+  - allocate that to file
+- file deletion
+  - add file blocks of deleted file to free space list
+
+### using bit vectors to implement free space list
+
+- each file block represented with bit
+  - block is free: 1
+  - block allocated: 0
+- hdd with n blocks requires n-bit vector
+
+### advantages of using bit vector
+
+- simplicity
+- efficiency in finding 1st free block or n consecutive free blocks
+- most cpus have bit manipulation operators
+  - allows us to compute free blocks fairly fast
+
+### finding free blocks using bit vector
+
+- 0 valued word represented allocated blocks
+- 1st nonzero word is scanned for 1st 1 bit
+  - location of 1st free block
+- free block num = bits per word \* num 0 value words + offset of 1st 1 bit
+
+### problems with bit vector approach
+
+- for efficiency purposes, bit vector must be mem resident
+  - difficult for larger disks
+  - 1 tb hard disk with 4kb blocks
+    - bit vector = 32 mb
+  - 1 pb disk = 32 gb bit vector
+- freeing 1 gb of data on a 1 tb disk
+  - thousands of blocks of bit maps need to be updated
+    - blocks could be scattered all over disk
+
+### linked list approach to free space mgmt
+
+- link free blocks
+- pointer to 1st free block stored in special location on disk & cached in mem
+- problems
+  - to traverse list, we must read each block - substantial i/o
+  - finding large num free blocks expensive
+
+### grouping to augment linked list approach
+
+- set aside 1 block for tracking a portion of chain
+  - 1st n - 1 entries are free blocks
+  - last entry points to another set of free blocks
+- if tracker block has 512 entries
+  - after linked list block is loaded in mem, next 510 blocks do not need i/o operations
+  - 512th entry points to another tracker block
+
+### free space mgmt using counting
+
+- several contiguous blocks free/allocated simultaneously
+- keep addr of 1st free block & num contiguous blocks that follow it
+
+### space maps used in zfs (zettabyte fs)
+
+- 1 zb = 2^70 bytes
+- controls size of i/o data structures
+  - minimize i/o needed to manage them
+- metaslabs divide space on disk into chunks
+  - a volume has hundreds of metaslabs
+- a metaslab has a space map
+  - counting algorithm to store info on space maps
+
+### zfs free space mgmt
+
+- does not write i/o metadata directly to disk
+  - free space list updated on disk using transactional techniques
+- when space (de)allocated from metaslab
+  - corresponding space map loaded into mem
+    - b-tree structure indexed by block offsets
+
+## mem mapped files
+
+### mem mapped files
+
+- `open()`, `read()`, `write()` require system calls & disk access
+- mem mapping - allow part of virt addr space to be logically associated with the file
+
+### mem mapping maps a disk block to page(s) in mem
+
+- manipulate files through mem
+  - multiple procs may map file concurrently
+    - enables data sharing
+  - since jvm 1.4, java supports mem mapped files (FileChannel)
+- writes to files in mem not necessarily immediate
+
+### mem mapped files: things to watch for
+
+- make sure that 2 procs don't see inconsistent views of same file
+- file may be larger than entire virt addr space -> map portions of file
+
+## performance
+
+### improving reads from disk
+
+- disk controllers have onboard cache that can store multiple racks
+- when seek performed
+  - track read into disk cache
+  - starting at sector under disk head
+    - reduces latency
+- controller then transfers sectors to os
+
+### buffering data read from disks since they may be used again
+
+- maintain a separate section of mem for buffer cache
+- cache file data using page cache
+  - use vram techniques
+  - cache as pages rather than file blocks
+  - access interfaces with vram, not fs
+
+### unified buffer cache
+
+- mem mapping & `read()`/`write()` system calls use same page cache
+- allows vram to manage fs data
+
+### need to make distinction between pages allocated to procs & page cache, else...
+
+- procs performing i/o will use most of mem set aside for caching pages
+- pages may be reclaimed from procs
+- solution: fixed limit for proc pages & fs page cache
+  - prevent one from forcing out other
+  - e.g. solaris 8
+
+### synchronous writes
+
+- writes not buffered
+- occurs in order of receival
+- calling routine waits for data to reach disk, blocking call
+- metadata writes tend to be synchronous
+- databases use this for atomic transactions
+
+### async writes
+
+- data stored in cacche
+- control returns to caller immediately
+- done majority of time
+
+### page cache, disk drivers, & async disk writes
+
+- when data written to disk, pages buffered in cache
+- disk driver sorts its output queue based on disk addrs
+  - minimize disk head seeks
+  - write at times optimized for disk rotations
+
+### page cache & page replacement algorithms
+
+- replacement algorithm depends on file access type
+- files being read/written sequentially
+  - pages should not be replaced in lru order
+    - most recently used page may never be used again
+- free behind
+  - remove page from buffer whennext one requested
+- read ahead
+  - requested page & subsequent pages cached
